@@ -101,6 +101,45 @@
   )
 )
 
+(defn display_help []
+  (do
+    (println "Usage: toy_counting_game LIMIT RANGE PLAYER")
+    (println "   LIMIT  - how high to play the game to")
+    (println "   RANGE  - how many numbers above the current value are valid")
+    (println "   PLAYER - Who goes first? '1' for human or '2' for CPU")
+    (System/exit -1)
+  )
+)
+
+(defn parse_args [args]
+  (try
+    (doall (map
+      (fn [x]
+        (let [result (Integer/parseInt x)]
+          (if (> result 0)
+            result
+            (throw (IllegalArgumentException. (str "Argument must be > 0 but got " result)))
+          )
+        )
+      )
+      args
+    ))
+    (catch Exception e
+      (do
+        (println (.getMessage e))
+        (display_help)
+      )
+    )
+  )
+)
+
+
 (defn -main [& args]
-  (play_game 0 21 3)
+  (if (== (count args) 3)
+    (let [[limit range player] (parse_args args)]
+      (reset! turn (== 1 player))
+      (play_game 0 limit range)
+    )
+    (display_help)
+  )
 )
