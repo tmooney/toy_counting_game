@@ -1,27 +1,27 @@
 (ns toy-counting-game.core)
 
-(defn is_higher [next current]
-  (> next current)
-)
-
-(defn is_within_range [next current range]
-  (<= (- next current) range)
-)
-
-(defn is_within_limit [next limit]
-  (<= next limit)
-)
-
 (defprotocol GameProtocol
+  (is_higher [this next])
+  (is_within_range [this next])
+  (is_within_limit [this next])
   (is_valid_move [this next])
 )
 (deftype Game [current limit range]
   GameProtocol
+  (is_higher [this next]
+    (> next current)
+  )
+  (is_within_range [this next]
+    (<= (- next current) range)
+  )
+  (is_within_limit [this next]
+    (<= next limit)
+  )
   (is_valid_move [this next]
     (and
-      (is_higher next current)
-      (is_within_range next current range)
-      (is_within_limit next limit)
+      (is_higher this next)
+      (is_within_range this next)
+      (is_within_limit this next)
     )
   )
 )
