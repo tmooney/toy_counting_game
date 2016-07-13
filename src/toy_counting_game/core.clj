@@ -1,14 +1,5 @@
 (ns toy-counting-game.core)
 
-(defn read_move [] (do
-  (print "Next move? ")
-  (flush)
-  (try
-    (Integer/parseInt (read-line))
-    (catch Exception e 0)
-  )
-))
-
 (defn is_higher [next current]
   (> next current)
 )
@@ -21,40 +12,55 @@
   (<= next limit)
 )
 
-(defn is_valid_move [next current limit range]
-  (and
-    (is_higher next current)
-    (is_within_range next current range)
-    (is_within_limit next limit)
+(defprotocol GameProtocol
+  (is_valid_move [this next])
+)
+(deftype Game [current limit range]
+  GameProtocol
+  (is_valid_move [this next]
+    (and
+      (is_higher next current)
+      (is_within_range next current range)
+      (is_within_limit next limit)
+    )
   )
 )
 
-(defn optimal_moves [limit range]
+(defn read_move [] (do
+  (print "Next move? ")
+  (flush)
+  (try
+    (Integer/parseInt (read-line))
+    (catch Exception e 0)
+  )
+))
+
+(defn optimal_moves [game]
   (take-while
     pos?
-    (iterate (fn [x] (- x range 1)) (- limit 1))
+    (iterate (fn [x] (- x (.range game) 1)) (- (.limit game) 1))
   )
 )
 
-(defn all_moves [limit]
+(defn all_moves [game]
   (take-while
-    (fn [x] (<= x limit))
+    (fn [x] (<= x (.limit game)))
     (iterate inc 0)
   )
 )
 
-(defn winning_strategy [current limit range]
+(defn winning_strategy [game]
   (first (filter
-    (fn [x] (is_valid_move x current limit range))
+    (fn [x] (.is_valid_move game x))
     (concat
-      (optimal_moves limit range)
-      (all_moves limit)
+      (optimal_moves game)
+      (all_moves game)
     )
   ))
 )
 
-(defn generate_move [current limit range]
-  (let [next (winning_strategy current limit range)]
+(defn generate_move [game]
+  (let [next (winning_strategy game)]
     (do
       (println (str "I choose... " next))
       (identity next)
@@ -65,28 +71,28 @@
 (def turn (atom true))
 
 (declare play_game)
-(defn make_move [next current limit range]
-  (if (is_valid_move next current limit range)
+(defn make_move [next game]
+  (if (.is_valid_move game next)
     (do
       (swap! turn not)
-      (play_game next limit range)
+      (play_game (Game. next (.limit game) (.range game)))
     )
     (do
       (.println *err* "Not a valid move.")
-      (play_game current limit range)
+      (play_game game)
     )
   )
 )
 
-(defn move [current limit range]
+(defn move [game]
   (if @turn
-    (make_move (read_move) current limit range)
-    (make_move (generate_move current limit range) current limit range)
+    (make_move (read_move) game)
+    (make_move (generate_move game) game)
   )
 )
 
-(defn play_game [current limit range]
-  (if (== current limit)
+(defn play_game [game]
+  (if (== (.current game) (.limit game))
     (do
       (if @turn
         (println "You win.")
@@ -95,8 +101,8 @@
       (System/exit 0)
     )
     (do
-      (println (str "Current value: " current))
-      (move current limit range)
+      (println (str "Current value: " (.current game)))
+      (move game)
     )
   )
 )
@@ -138,7 +144,7 @@
   (if (== (count args) 3)
     (let [[limit range player] (parse_args args)]
       (reset! turn (== 1 player))
-      (play_game 0 limit range)
+      (play_game (Game. 0 limit range))
     )
     (display_help)
   )
